@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Word Search Generator</title>
+<style>
+  :root{--gap:14px;--accent:#1967d2}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:20px;color:#222}
+  h1{margin:0 0 8px;font-size:20px}
+  .container{display:flex;gap:var(--gap);align-items:flex-start;flex-wrap:wrap}
+  .panel{background:#fff;border:1px solid #ddd;padding:12px;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,0.03)}
+  .form{max-width:640px;flex:1 1 640px}
+  label{display:block;font-weight:600;margin:8px 0 6px}
+  input[type="text"],select,textarea{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;font-size:14px;box-sizing:border-box}
+  textarea{min-height:120px;resize:vertical}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .col{flex:1 1 160px;min-width:160px}
+  .radio-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+  .small{font-size:13px;color:#555}
+  button{background:var(--accent);color:#fff;border:0;padding:10px 14px;border-radius:6px;font-weight:600;cursor:pointer}
+  button.secondary{background:#f3f3f3;color:#222}
+  .preview{flex:1 1 520px;min-width:320px;display:flex;flex-direction:column;gap:10px}
+  .puzzle-wrap{background:#fff;padding:12px;border-radius:8px;border:1px solid #ddd;display:flex;gap:12px;align-items:flex-start}
+  .words-list{font-size:14px;line-height:1.4}
+  .words-list ul{margin:0;padding-left:18px}
+  table.grid{border-collapse:collapse}
+  table.grid td{width:30px;height:30px;text-align:center;border:1px solid #ccc;font-weight:700;font-size:16px}
+  .title{text-align:center;margin-bottom:6px}
+  .meta{display:flex;gap:8px;justify-content:center;font-size:13px;color:#444;margin-bottom:6px}
+  .warning{color:#b33;margin-top:6px}
+  @media(print){
+    body{margin:6mm}
+    .form,.panel>button,.controls{display:none}
+    table.grid td{width:22px;height:22px;font-size:12px}
+  }
+</style>
+</head>
+<body>
+  <h1>Word Search Generator — custom puzzle</h1>
+  <div class="container">
+    <div class="panel form" id="formPanel">
+      <label for="title">Title of the puzzle</label>
+      <input id="title" type="text" placeholder="e.g. Ocean Animals" value="My Word Search">
+
+      <label for="category">Choose a category</label>
+      <select id="category">
+        <option>Custom</option>
+        <option>Animals</option>
+        <option>Food</option>
+        <option>Science</option>
+        <option>Sports</option>
+        <option>Countries</option>
+        <option>School</option>
+        <option>Plants</option>
+        <option>Holidays</option>
+      </select>
+      <div class="small" style="margin-top:6px;">
+        Tip: you can also visit <a href="https://easywordsearchmaker.com/cat" target="_blank" rel="noopener">easywordsearchmaker.com/cat</a> for example categories.
+      </div>
+
+      <label>Layout settings (where the word list appears)</label>
+      <div class="radio-grid" id="layoutRadios">
+        <label><input type="radio" name="layout" value="top" checked> Words at the top</label>
+        <label><input type="radio" name="layout" value="bottom"> Words at the bottom</label>
+        <label><input type="radio" name="layout" value="right"> Words on the right</label>
+        <label><input type="radio" name="layout" value="left"> Words on the left</label>
+      </div>
+
+      <label>Grid Size (choose audience)</label>
+      <div class="row">
+        <div class="col panel" style="padding:10px">
+          <div style="font-weight:700">For Kids</div>
+          <label><input type="radio" name="gridsize" value="5" > 5 × 5</label><br>
+          <label><input type="radio" name="gridsize" value="7" checked> 7 × 7</label><br>
+          <label><input type="radio" name="gridsize" value="10"> 10 × 10</label>
+        </div>
+        <div class="col panel" style="padding:10px">
+          <div style="font-weight:700">For Seniors</div>
+          <label><input type="radio" name="gridsize" value="8"> 8 × 8</label><br>
+          <label><input type="radio" name="gridsize" value="10"> 10 × 10</label><br>
+          <label><input type="radio" name="gridsize" value="12"> 12 × 12</label>
+        </div>
+        <div class="col panel" style="padding:10px">
+          <div style="font-weight:700">For Teens / Adults</div>
+          <label><input type="radio" name="gridsize" value="12"> 12 × 12</label><br>
+          <label><input type="radio" name="gridsize" value="15"> 15 × 15</label><br>
+          <label><input type="radio" name="gridsize" value="20"> 20 × 20</label>
+        </div>
+        <div class="col panel" style="padding:10px">
+          <div style="font-weight:700">For Advanced Players</div>
+          <label><input type="radio" name="gridsize" value="25"> 25 × 25</label><br>
+          <label><input type="radio" name="gridsize" value="30"> 30 × 30</label>
+        </div>
+      </div>
+
+      <label>Difficulty level</label>
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="gentle">Gentle but engaging</option>
+        <option value="moderate" selected>Moderate</option>
+        <option value="hard">Hard</option>
+      </select>
+
+      <label for="words">Enter the list of words (one per line)</label>
+      <textarea id="words" placeholder="e.g. whale&#10;shark&#10;turtle">cat
+dog
+fish
+whale
+shark
+dolphin
+octopus</textarea>
+
+      <div style="display:flex;gap:8px;margin-top:12px" class="controls">
+        <button id="generate">Generate Puzzle</button>
+        <button id="clear" class="secondary">Clear Grid</button>
+        <button id="print" class="secondary">Print</button>
+        <button id="export" class="secondary">Copy puzzle text</button>
+      </div>
+
+      <div id="messages" class="small"></div>
+    </div>
+
+    <div class="panel preview" id="previewPanel">
+      <div class="title">
+        <div id="pTitle" style="font-size:18px;font-weight:700">My Word Search</div>
+        <div class="meta" id="metaInfo"></div>
+      </div>
+
+      <div class="puzzle-wrap" id="puzzleWrap" style="min-height:160px">
+        <!-- layout-aware container -->
+        <div id="listBefore" class="words-list" style="min-width:140px"></div>
+        <div id="gridContainer" style="overflow:auto"></div>
+        <div id="listAfter" class="words-list" style="min-width:140px"></div>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:8px">
+        <button id="showSolution" class="secondary">Show Solution</button>
+        <button id="hideSolution" class="secondary" style="display:none">Hide Solution</button>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+// ... all your existing helper functions remain unchanged ...
+
+// category change handler with custom link injection
+$('category').addEventListener('change',(e)=>{
+  const v = e.target.value;
+  const samples = {
+    Animals: ['cat','dog','lion','tiger','whale','shark','elephant','giraffe','bear','wolf'],
+    Food: ['apple','banana','pizza','bread','cheese','carrot','tomato','cake','egg','milk'],
+    Science: ['atom','planet','gravity','energy','cell','molecule','force','electron','neutron','laser'],
+    Sports: ['soccer','tennis','cricket','golf','rugby','baseball','hockey','boxing','skiing','swimming'],
+    Countries: ['china','india','france','spain','japan','brazil','germany','italy','canada','mexico'],
+    School: ['math','science','art','history','music','physics','chemistry','biology','geography','literature'],
+    Plants: ['rose','lily','oak','cactus','bamboo','tulip','daisy','maple','fern','ivy'],
+    Holidays: ['easter','christmas','diwali','ramadan','halloween','thanksgiving','hanukkah','newyear','valentine','holi'],
+    Custom: []
+  };
+
+  // Remove any existing custom link message first
+  let existingLink = document.getElementById('customLinkMessage');
+  if(existingLink) existingLink.remove();
+
+  if(v === 'Custom') {
+    // Clear words textarea
+    wordsText.value = '';
+
+    // Create and insert the clickable link below the textarea
+    const linkMsg = document.createElement('div');
+    linkMsg.id = 'customLinkMessage';
+    linkMsg.className = 'small';
+    linkMsg.style.marginTop = '6px';
+    linkMsg.innerHTML = 'Select your custom words from <a href="https://thewordsearch.com/" target="_blank" rel="noopener noreferrer">this link</a>. Copy and paste them into the box above.';
+    
+    // Insert after the textarea
+    wordsText.parentNode.insertBefore(linkMsg, wordsText.nextSibling);
+
+  } else if(samples[v] && samples[v].length){
+    // Remove link if exists
+    if(existingLink) existingLink.remove();
+
+    // append sample words to textarea preserving user's words
+    const cur = wordsText.value.trim();
+    const add = samples[v].join('\n');
+    if(!cur) wordsText.value = add;
+    else {
+      const curWords = sanitizeWords(cur);
+      const toAdd = samples[v].filter(s=>!curWords.includes(s.toUpperCase()));
+      if(toAdd.length) wordsText.value = cur + '\n' + toAdd.join('\n');
+    }
+  }
+});
+
+// Your existing generate, clear, print, export, show/hide solution button event listeners and helper functions remain unchanged...
+
+// (rest of your existing code continues here)
+
+</script>
+</body>
+</html>
