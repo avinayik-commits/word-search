@@ -1,0 +1,228 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy static content to Pages
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["main"]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Cookies + Lucky Draw Interactive</title>
+<style>
+    body { font-family: Arial, sans-serif; background: #f4f4f9; padding: 20px; text-align: center; }
+    h1 { color: #333; }
+    .letters { font-size: 30px; font-weight: bold; margin: 10px 0; }
+    .letter { display: inline-block; padding: 10px 15px; margin: 5px; border: 2px solid #333; border-radius: 5px; cursor: pointer; background: #fff; transition: 0.2s; }
+    .letter:hover { background: #ffd700; }
+    #selectedWord { font-size: 24px; margin: 10px 0; }
+    button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    .log { border: 1px solid #ccc; padding: 10px; background: #fff; max-height: 150px; overflow-y: auto; margin-bottom: 10px; }
+    #timerBar { height: 20px; background: #ddd; margin: 10px 0; border-radius: 10px; overflow: hidden; }
+    #timerProgress { height: 100%; width: 100%; background: #4caf50; transition: width 1s linear; }
+    #wheel { width: 200px; height: 200px; border-radius: 50%; border: 5px solid #333; margin: 20px auto; position: relative; }
+    .wheelSegment { position: absolute; width: 50%; height: 50%; top: 50%; left: 50%; transform-origin: 0% 0%; text-align: right; padding-right: 10px; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Word Cookies + Lucky Draw</h1>
+<div>
+    <label for="difficulty">Choose Difficulty: </label>
+    <select id="difficulty">
+        <option value="Easy">Easy</option>
+        <option value="Beginner">Beginner</option>
+        <option value="Expert">Expert</option>
+        <option value="Professional">Professional</option>
+    </select>
+    <button onclick="startGame()">Start Game</button>
+</div>
+<div id="gameArea" style="display:none;">
+    <div class="letters" id="lettersDisplay"></div>
+    <div id="selectedWord"></div>
+    <button onclick="submitWord()">Submit Word</button>
+    <button onclick="clearSelection()">Clear Selection</button>
+    <button onclick="endRound()">End Round</button>
+    <div class="log" id="log"></div>
+    <div id="scoreDisplay">Score: 0</div>
+    <div id="timerBar"><div id="timerProgress"></div></div>
+    <div id="wheel"></div>
+</div>
+<script>
+const difficultySettings = {
+    Easy: { minLetters: 3, maxLetters:5, roundTime: 60 },
+    Beginner: { minLetters: 4, maxLetters:6, roundTime: 45 },
+    Expert: { minLetters: 5, maxLetters:7, roundTime: 40 },
+    Professional: { minLetters: 6, maxLetters:8, roundTime: 35 }
+};
+
+let currentLetters = [];
+let selectedLetters = [];
+let foundWords = new Set();
+let score = 0;
+let roundTimer;
+let timeLeft = 0;
+
+function startGame() {
+    const difficulty = document.getElementById('difficulty').value;
+    document.getElementById('gameArea').style.display = 'block';
+    const lettersCount = getRandomInt(difficultySettings[difficulty].minLetters, difficultySettings[difficulty].maxLetters);
+    currentLetters = generateLetters(lettersCount);
+    selectedLetters = [];
+    foundWords = new Set();
+    score = 0;
+    timeLeft = difficultySettings[difficulty].roundTime;
+    renderLetters();
+    document.getElementById('selectedWord').textContent = '';
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('scoreDisplay').textContent = 'Score: 0';
+    updateTimerBar();
+    clearInterval(roundTimer);
+    roundTimer = setInterval(() => {
+        timeLeft--;
+        updateTimerBar();
+        if(timeLeft <= 0){
+            clearInterval(roundTimer);
+            logMessage('Time is up!');
+            endRound();
+        }
+    },1000);
+}
+
+function renderLetters() {
+    const display = document.getElementById('lettersDisplay');
+    display.innerHTML = '';
+    currentLetters.forEach((ch, idx) => {
+        const span = document.createElement('span');
+        span.className = 'letter';
+        span.textContent = ch.toUpperCase();
+        span.onclick = () => selectLetter(idx);
+        display.appendChild(span);
+    });
+}
+
+function selectLetter(idx) {
+    selectedLetters.push(currentLetters[idx]);
+    document.getElementById('selectedWord').textContent = selectedLetters.join('');
+}
+
+function clearSelection() {
+    selectedLetters = [];
+    document.getElementById('selectedWord').textContent = '';
+}
+
+function submitWord() {
+    const word = selectedLetters.join('').toLowerCase();
+    if (!word) return;
+    if (foundWords.has(word)) { logMessage('Already found.'); clearSelection(); return; }
+    if (!canForm(word, currentLetters)) { logMessage('Cannot form word from letters.'); clearSelection(); return; }
+    foundWords.add(word);
+    score += word.length * 10;
+    logMessage(`Correct! +${word.length*10} points`);
+    document.getElementById('scoreDisplay').textContent = `Score: ${score}`;
+    clearSelection();
+}
+
+function endRound() {
+    clearInterval(roundTimer);
+    logMessage('Round ended. You found: ' + Array.from(foundWords).join(', '));
+    performLuckyDraw();
+}
+
+function logMessage(msg) {
+    const log = document.getElementById('log');
+    log.innerHTML += msg + '<br>';
+    log.scrollTop = log.scrollHeight;
+}
+
+function updateTimerBar() {
+    const progress = document.getElementById('timerProgress');
+    const difficulty = document.getElementById('difficulty').value;
+    const total = difficultySettings[difficulty].roundTime;
+    progress.style.width = (timeLeft/total*100)+'%';
+}
+
+function generateLetters(n) {
+    const letters = 'abcdefghijklmnopqrstuvwxyz'.split('');
+    let result = [];
+    for(let i=0;i<n;i++) result.push(letters[Math.floor(Math.random()*letters.length)]);
+    return result;
+}
+
+function canForm(word, letters) {
+    let temp = letters.slice();
+    for(let ch of word) {
+        const idx = temp.indexOf(ch);
+        if(idx===-1) return false;
+        temp.splice(idx,1);
+    }
+    return true;
+}
+
+function performLuckyDraw() {
+    const options = ['Bonus 50', 'Extra 15s', 'Double next round', 'Hint', 'Nothing'];
+    const wheel = document.getElementById('wheel');
+    wheel.innerHTML = '';
+    const angleStep = 360 / options.length;
+    options.forEach((opt, i) => {
+        const seg = document.createElement('div');
+        seg.className = 'wheelSegment';
+        seg.style.transform = `rotate(${i*angleStep}deg)`;
+        seg.textContent = opt;
+        wheel.appendChild(seg);
+    });
+    let spinAngle = 0;
+    const spinInterval = setInterval(()=>{
+        spinAngle += 30;
+        wheel.style.transform = `rotate(${spinAngle}deg)`;
+        if(spinAngle >= 360*3){
+            clearInterval(spinInterval);
+            const choice = options[Math.floor(Math.random()*options.length)];
+            logMessage('Lucky Draw result: ' + choice);
+        }
+    },100);
+}
+
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+</script>
+</body>
+</html>
+
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Single deploy job since we're just deploying
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload entire repository
+          path: '.'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
